@@ -1,71 +1,54 @@
 import streamlit as st
-import pyttsx3
 from gtts import gTTS
 import os
+import base64
 
-# Custom Styles
-st.set_page_config(page_title="Text to Speech App", page_icon="🗣", layout="centered")
-st.markdown(
-    """
-    <style>
-        .main { background-color: #f4f4f4; }
-        h1 { color: #2E8B57; text-align: center; }
-        div.stButton > button:first-child { background-color: #0084ff; color: white; border-radius: 10px; padding: 10px; }
-        div.stButton > button:hover { background-color: #0060cc; }
-        div.stSelectbox, div.stRadio, div.stSlider { background-color: white; padding: 10px; border-radius: 10px; }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+# App Title & Config
+st.set_page_config(page_title="Text-to-Speech App", page_icon="🔊", layout="centered")
 
-# App UI
-st.title("🗣 Text to Speech Converter")
-st.write("Convert text into speech instantly!")
+st.markdown("<h1 style='text-align: center; color: blue;'>🗣 Text to Speech Converter</h1>", unsafe_allow_html=True)
 
-# Input Text
-text = st.text_area("📝 Enter your text:", "Hello, how are you?", height=150)
+# Text Input
+text = st.text_area("✍ Enter text to convert into speech:", max_chars=500)
 
-# Select Voice Type
-voice_type = st.radio("🎙 Choose Voice:", ["Male", "Female"], horizontal=True)
+# Live Character Count
+st.write(f"📝 *{len(text)} / 500 characters used*")
 
-# Speech Speed
-speed = st.slider("⏩ Adjust Speech Speed:", min_value=100, max_value=250, value=150, step=10)
+# Language Selection
+lang_options = {
+    "English": "en",
+    "Urdu": "ur",
+    "Hindi": "hi",
+    "French": "fr",
+    "Spanish": "es"
+}
+lang = st.selectbox("🌍 Choose Language:", list(lang_options.keys()))
 
-# Choose Engine
-engine_type = st.selectbox("🔧 Select TTS Engine:", ["pyttsx3 (Offline)", "gTTS (Online)"])
+# Voice Style (For now, this just acts as an accent selector)
+voice_style = st.radio("🎙 Select Voice Style:", ["Male", "Female"])
 
-# Speak Button
-if st.button("🔊 Speak Now"):
+# Function to Download Audio
+def get_audio_download_link(audio_file, file_label="Download Audio"):
+    with open(audio_file, "rb") as file:
+        data = file.read()
+        b64 = base64.b64encode(data).decode()
+        return f'<a href="data:audio/mp3;base64,{b64}" download="{audio_file}">{file_label}</a>'
+
+# Convert & Play Audio
+if st.button("🔊 Convert & Play"):
     if text.strip():
-        if engine_type == "pyttsx3 (Offline)":
-            # Using pyttsx3 (Offline)
-            engine = pyttsx3.init()
-            voices = engine.getProperty('voices')
-            engine.setProperty('rate', speed)
+        tts = gTTS(text=text, lang=lang_options[lang])
+        audio_file = "output.mp3"
+        tts.save(audio_file)
 
-            # Set Voice Gender
-            if voice_type == "Male":
-                engine.setProperty('voice', voices[0].id)
-            else:
-                engine.setProperty('voice', voices[1].id)
+        # Display Audio Player
+        st.audio(audio_file, format="audio/mp3")
 
-            # Speak
-            engine.say(text)
-            engine.runAndWait()
-            st.success("✅ Speech is playing...")
-
-        else:
-            # Using gTTS (Google TTS - Online)
-            tts = gTTS(text=text, lang='en')
-            tts.save("output.mp3")
-            os.system("start output.mp3")  # Windows
-            # os.system("afplay output.mp3")  # MacOS
-            # os.system("mpg321 output.mp3")  # Linux
-            st.success("✅ Playing speech using gTTS...")
+        # Provide Download Link
+        st.markdown(get_audio_download_link(audio_file), unsafe_allow_html=True)
 
     else:
-        st.warning("⚠ Please enter some text to speak.")
+        st.warning("⚠ Please enter some text before converting!")
 
 # Footer
-st.markdown("---")
-st.markdown("🔹 *Created with ❤ using Python & Streamlit* | ✨ Enjoy your TTS experience! ✨")
+st.markdown("<hr><p style='text-align: center;'>Made with ❤ using Streamlit & gTTS</p>", unsafe_allow_html=True)
